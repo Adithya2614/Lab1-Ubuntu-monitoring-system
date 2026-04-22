@@ -1,4 +1,4 @@
-# 🖥️ WMI — Web-based Monitoring Interface for Ubuntu Lab PCs
+# 🖥️ Lab1 —Ubuntu monitoring system
 
 A centralized, web-based monitoring and management dashboard for Ubuntu computer lab environments. WMI uses **Ansible** for agentless remote execution, a **FastAPI** backend as the control plane, and a **React + Vite** frontend for a modern, real-time dashboard experience.
 
@@ -285,6 +285,4 @@ This project was built for internal use in a university computer lab environment
 
 ---
 
-<p align="center">
-  Made with ❤️ for lab administrators who deserve better tools.
-</p>
+
