@@ -1,0 +1,14 @@
+---
+- name: List Files
+  hosts: all
+  gather_facts: no
+  vars:
+    path: "/home"
+  tasks:
+    - name: List Directory Contents
+      shell: "ls -la --full-time {{ path }} | tail -n +2"
+      register: files_out
+
+    - name: Return Files
+      debug:
+        msg: "{{ files_out.stdout_lines }}"

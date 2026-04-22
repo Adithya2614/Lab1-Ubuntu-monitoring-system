@@ -1,0 +1,53 @@
+---
+- name: Manage Browsers
+  hosts: all
+  gather_facts: no
+  become: yes
+  vars:
+    # Use browser_action to avoid reserved 'action' name
+    browser_action: kill 
+    browsers:
+      - /usr/bin/firefox
+      - /usr/bin/google-chrome
+      - /usr/bin/chromium-browser
+      - /usr/bin/microsoft-edge
+      - /usr/bin/brave-browser
+    snap_browsers:
+      - firefox
+      - chromium
+      - brave
+      - microsoft-edge
+
+  tasks:
+    - name: Kill Browser Processes (Aggressive)
+      shell: "pkill -9 -f 'firefox|chrome|chromium|edge|brave' || exit 0"
+      when: browser_action == 'kill' or browser_action == 'block'
+      ignore_errors: yes
+
+    - name: Block Binary Browsers
+      file:
+        path: "{{ item }}"
+        mode: 'a-x'
+      loop: "{{ browsers }}"
+      ignore_errors: yes
+      when: browser_action == 'block'
+
+    - name: Unblock Binary Browsers
+      file:
+        path: "{{ item }}"
+        mode: 'a+x'
+      loop: "{{ browsers }}"
+      ignore_errors: yes
+      when: browser_action == 'unblock'
+
+    - name: Disable Snap Browsers
+      command: "snap disable {{ item }}"
+      loop: "{{ snap_browsers }}"
+      ignore_errors: yes
+      when: browser_action == 'block'
+
+    - name: Enable Snap Browsers
+      command: "snap enable {{ item }}"
+      loop: "{{ snap_browsers }}"
+      ignore_errors: yes
+      when: browser_action == 'unblock'

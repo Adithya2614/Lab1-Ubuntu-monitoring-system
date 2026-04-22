@@ -1,0 +1,12 @@
+---
+- name: List Installed Packages
+  hosts: all
+  gather_facts: no
+  tasks:
+    - name: Get Package List
+      shell: "dpkg-query -W -f='${Package} ${Version} ${Status}\n' | grep 'install ok installed'"
+      register: pkg_list
+
+    - name: Return Packages
+      debug:
+        msg: "{{ pkg_list.stdout_lines }}"

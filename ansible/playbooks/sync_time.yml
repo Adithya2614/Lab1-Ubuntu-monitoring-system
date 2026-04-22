@@ -1,0 +1,23 @@
+---
+- name: Sync Time and Timezone
+  hosts: all
+  become: yes
+  tasks:
+    - name: Enable NTP (Automatic Date & Time)
+      shell: timedatectl set-ntp true
+
+    - name: Enable Automatic Timezone (for Desktop environments)
+      become_user: "{{ ansible_user }}"
+      shell: gsettings set org.gnome.desktop.datetime automatic-timezone true
+      ignore_errors: yes
+
+    - name: Update hardware clock
+      shell: hwclock --systohc
+      ignore_errors: yes
+
+    - name: Ensure systemd-timesyncd is running
+      systemd:
+        name: systemd-timesyncd
+        state: started
+        enabled: yes
+      ignore_errors: yes

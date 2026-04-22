@@ -1,0 +1,117 @@
+---
+- name: Secure Archive Files
+  hosts: all
+  become: yes
+  vars:
+    home_dir: "/home/{{ ansible_user }}"
+    vault_path: "/home/{{ ansible_user }}/.wmi_vault"
+    whitelist_names:
+      - ".bashrc"
+      - ".profile"
+      - ".bash_logout"
+      - ".ssh"
+      - ".config"
+      - ".local"
+      - ".cache"
+      - "manifest.json"
+      - ".wmi_vault"
+      - ".bash_history"
+      - ".gnupg"
+      - ".dmrc"
+      - ".Xauthority"
+      - ".ICEauthority"
+      - ".dbus"
+      - ".gvfs"
+      - ".mozilla"
+      - ".vscode"
+    whitelist_extensions:
+      - ".sh"
+      - ".py"
+      - ".so"
+      - ".conf"
+      - ".ko"
+      - ".deb"
+  tasks:
+    - name: Ensure vault directory exists
+      file:
+        path: "{{ vault_path }}"
+        state: directory
+        mode: '0700'
+        owner: "{{ ansible_user }}"
+
+    - name: Run Archive Script
+      shell: 
+        cmd: |
+          python3 -c '
+          import os, json, hashlib, datetime, shutil
+          home = "{{ home_dir }}"
+          vault = "{{ vault_path }}"
+          whitelist_names = {{ whitelist_names | to_json }}
+          whitelist_exts = {{ whitelist_extensions | to_json }}
+          
+          # Directories that should NEVER be touched to keep OS stable
+          system_skip_dirs = [".local", ".cache", ".config", ".mozilla", ".vscode", ".ssh", ".gnupg", ".dbus", "snap", ".wmi_vault"]
+          
+          if not os.path.exists(vault): os.makedirs(vault, mode=0o700, exist_ok=True)
+          
+          manifest = []
+          timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+          if os.path.exists(os.path.join(vault, "manifest.json")):
+              try:
+                  with open(os.path.join(vault, "manifest.json"), "r") as f:
+                      manifest = json.load(f)
+              except: pass
+          
+          for root, dirs, files in os.walk(home):
+              # Skip the vault itself
+              if vault in root: continue
+              
+              # Calculate relative path to decide if we should skip this branch
+              rel_root = os.path.relpath(root, home)
+              top_dir = rel_root.split(os.sep)[0]
+              
+              if top_dir in system_skip_dirs:
+                  dirs[:] = [] # Skip descending into this directory tree
+                  continue
+
+              for file in files:
+                  filepath = os.path.join(root, file)
+                  
+                  # Skip files starting with . in the home root (configs)
+                  if rel_root == "." and file.startswith("."):
+                      continue
+                      
+                  # Check whitelist
+                  if file in whitelist_names: continue
+                  ext = os.path.splitext(file)[1]
+                  if ext in whitelist_exts: continue
+                  
+                  try:
+                      safe_name = hashlib.md5(filepath.encode()).hexdigest()
+                      target = os.path.join(vault, safe_name)
+                      
+                      shutil.move(filepath, target)
+                      manifest.append({
+                          "name": file,
+                          "path": filepath,
+                          "stored_as": safe_name,
+                          "timestamp": timestamp
+                      })
+                  except:
+                      pass
+
+          with open(os.path.join(vault, "manifest.json"), "w") as f:
+              json.dump(manifest, f)
+          print(json.dumps(manifest))
+          '
+      register: script_out
+
+    - name: Return Manifest
+      set_fact:
+        archive_result: "{{ script_out.stdout | from_json }}"
+      ignore_errors: yes
+
+    - name: Output Result
+      debug:
+        msg: "{{ archive_result if archive_result is defined else [] }}"

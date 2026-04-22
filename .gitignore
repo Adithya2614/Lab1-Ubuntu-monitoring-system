@@ -1,0 +1,48 @@
+# ============================================
+# WMI Project — Root .gitignore
+# ============================================
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+*.egg
+.venv/
+venv/
+env/
+get-pip.py
+
+# ---------- Node.js ----------
+node_modules/
+.node/
+npm-debug.log*
+yarn-debug.log*
+
+# ---------- Build Artifacts ----------
+dashboard/dist/
+dashboard/dist-ssr/
+
+# ---------- Runtime / Logs ----------
+logs/
+*.log
+
+# ---------- Sensitive / Secrets ----------
+# The inventory contains plaintext passwords — never commit it!
+ansible/inventory/hosts
+
+# ---------- OS / Editor ----------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.local
+
+# ---------- Misc ----------
+*.bak
+*.tmp

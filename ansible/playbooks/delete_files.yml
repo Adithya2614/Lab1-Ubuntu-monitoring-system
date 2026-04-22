@@ -1,0 +1,18 @@
+---
+- name: Delete Files
+  hosts: all
+  gather_facts: no
+  vars:
+    # Accept 'files' to match frontend, or 'paths' as alias
+    files: [] 
+  tasks:
+    - name: Delete Files/Directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ files }}"
+      register: result
+
+    - name: Return Result
+      debug:
+        msg: "Deleted {{ files | length }} items"

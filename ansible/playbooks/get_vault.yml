@@ -1,0 +1,21 @@
+---
+- name: Get Vault Manifest
+  hosts: all
+  become: yes
+  vars:
+    vault_path: "/home/{{ ansible_user }}/.wmi_vault"
+  tasks:
+    - name: Check if manifest exists
+      stat:
+        path: "{{ vault_path }}/manifest.json"
+      register: manifest_stat
+
+    - name: Read manifest
+      slurp:
+        src: "{{ vault_path }}/manifest.json"
+      register: manifest_content
+      when: manifest_stat.stat.exists
+
+    - name: Output Result
+      debug:
+        msg: "{{ manifest_content.content | b64decode | from_json if (manifest_stat.stat.exists and manifest_content.content is defined) else [] }}"

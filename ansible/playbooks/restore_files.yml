@@ -1,0 +1,58 @@
+---
+- name: Restore Archived Files
+  hosts: all
+  become: yes
+  vars:
+    vault_path: "/home/{{ ansible_user }}/.wmi_vault"
+  tasks:
+    - name: Check if manifest exists
+      stat:
+        path: "{{ vault_path }}/manifest.json"
+      register: manifest_stat
+
+    - name: Run Restore Script
+      shell:
+        cmd: |
+          python3 -c '
+          import os, json, shutil
+          vault = "{{ vault_path }}"
+          manifest_path = os.path.join(vault, "manifest.json")
+          
+          if not os.path.exists(manifest_path):
+              print("No manifest found")
+              exit(0)
+              
+          try:
+              with open(manifest_path, "r") as f:
+                  manifest = json.load(f)
+          except Exception as e:
+              print(f"Error reading manifest: {e}")
+              exit(1)
+              
+          for item in manifest:
+              orig = item["path"]
+              stored = os.path.join(vault, item["stored_as"])
+              
+              if os.path.exists(stored):
+                  try:
+                      # Ensure target directory exists
+                      os.makedirs(os.path.dirname(orig), exist_ok=True)
+                      # Move back
+                      shutil.move(stored, orig)
+                  except Exception as e:
+                      print(f"Failed to restore {orig}: {e}")
+          
+          # Clean up vault folder after restore
+          try:
+              shutil.rmtree(vault)
+              print("Success")
+          except:
+              print("Restored with cleanup errors")
+          '
+      when: manifest_stat.stat.exists
+      register: restore_out
+
+    - name: Status Update
+      debug:
+        msg: "{{ restore_out.stdout }}"
+      when: manifest_stat.stat.exists

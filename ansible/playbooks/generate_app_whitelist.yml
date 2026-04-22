@@ -1,0 +1,15 @@
+---
+- name: Generate App Whitelist
+  hosts: all
+  gather_facts: no
+  tasks:
+    - name: Get Package List
+      shell: "dpkg-query -W -f='${Package}\n' | grep '^[a-zA-Z0-9]'"
+      register: pkg_list
+
+    - name: Save unique package names to a local file
+      delegate_to: localhost
+      copy:
+        content: "{{ pkg_list.stdout_lines | unique | sort | to_nice_json }}"
+        dest: "/home/cse-icb-060/WMI/config/app_whitelist.json"
+      run_once: true

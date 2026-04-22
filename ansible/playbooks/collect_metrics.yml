@@ -1,0 +1,33 @@
+---
+- name: Collect System Metrics
+  hosts: all
+  gather_facts: no
+  tasks:
+    - name: Get Uptime
+      shell: uptime -p
+      register: uptime_out
+
+    - name: Get Memory Usage
+      shell: free -m | grep Mem | awk '{print $3}'
+      register: mem_used
+
+    - name: Get Memory Total
+      shell: free -m | grep Mem | awk '{print $2}'
+      register: mem_total
+
+    - name: Get CPU Load
+      shell: cat /proc/loadavg | awk '{print $1}'
+      register: cpu_load
+
+    - name: Get Disk Usage (Root)
+      shell: df -h / | tail -1 | awk '{print $5}'
+      register: disk_usage
+
+    - name: Return Metrics
+      debug:
+        msg:
+          uptime: "{{ uptime_out.stdout }}"
+          ram_used: "{{ mem_used.stdout }}"
+          ram_total: "{{ mem_total.stdout }}"
+          cpu_load: "{{ cpu_load.stdout }}"
+          disk_usage: "{{ disk_usage.stdout }}"

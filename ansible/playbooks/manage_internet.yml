@@ -1,0 +1,38 @@
+---
+- name: Manage Internet Access
+  hosts: all
+  become: yes
+  vars:
+    state: enabled # 'enabled' or 'disabled'
+  tasks:
+    - name: Install UFW
+      apt:
+        name: ufw
+        state: present
+      ignore_errors: yes
+
+    - name: Allow SSH
+      ufw:
+        rule: allow
+        port: 22
+    
+    - name: Allow API (8000)
+      ufw:
+        rule: allow
+        port: 8000
+
+    - name: Block all outgoing if disabled
+      ufw:
+        default: deny
+        direction: outgoing
+      when: state == 'disabled'
+
+    - name: Allow all outgoing if enabled
+      ufw:
+        default: allow
+        direction: outgoing
+      when: state == 'enabled'
+      
+    - name: Enable UFW
+      ufw:
+        state: enabled

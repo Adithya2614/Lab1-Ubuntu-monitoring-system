@@ -1,0 +1,71 @@
+---
+- name: Restrict Website Access
+  hosts: all
+  become: yes
+  vars:
+    # target_state: 'restrict' or 'restore'
+    whitelist_file: "/home/cse-icb-060/WMI/config/website_whitelist.txt"
+    domains: []
+
+  tasks:
+    - name: Load whitelist from controller
+      set_fact:
+        domains: "{{ lookup('file', whitelist_file).splitlines() }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Ensure UFW is installed
+      apt:
+        name: ufw
+        state: present
+
+    - name: Allow SSH Outgoing
+      ufw:
+        rule: allow
+        direction: out
+        port: 22
+
+    - name: Allow DNS Outgoing (UDP)
+      ufw:
+        rule: allow
+        direction: out
+        port: 53
+        proto: udp
+
+    - name: Allow DNS Outgoing (TCP)
+      ufw:
+        rule: allow
+        direction: out
+        port: 53
+        proto: tcp
+
+    - name: Allow Controller API Outgoing (8000)
+      ufw:
+        rule: allow
+        direction: out
+        port: 8000
+
+    - name: Allow Whitelisted Domains
+      ufw:
+        rule: allow
+        direction: out
+        to_dest: "{{ item }}"
+      loop: "{{ domains }}"
+      when: target_state == 'restrict'
+      ignore_errors: yes
+
+    - name: Set Default Deny Outgoing
+      ufw:
+        default: deny
+        direction: outgoing
+      when: target_state == 'restrict'
+
+    - name: Set Default Allow Outgoing (Restore)
+      ufw:
+        default: allow
+        direction: outgoing
+      when: target_state == 'restore'
+
+    - name: Enable UFW
+      ufw:
+        state: enabled

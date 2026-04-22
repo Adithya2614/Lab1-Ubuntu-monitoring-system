@@ -1,0 +1,74 @@
+---
+- name: Remove Non-Whitelisted Apps
+  hosts: all
+  become: yes
+  vars:
+    # Read whitelist from the controller
+    whitelist_data: "{{ lookup('file', '/home/cse-icb-060/WMI/config/app_whitelist.json') | from_json }}"
+    
+    # HARDCODED Safety List - Never remove these even if missing from whitelist
+    system_safety_list:
+      - "ansible"
+      - "ssh"
+      - "openssh-server"
+      - "python3"
+      - "python3-pip"
+      - "sudo"
+      - "apt"
+      - "dpkg"
+      - "bash"
+      - "coreutils"
+      - "systemd"
+      - "network-manager"
+      - "u-boot-tools"
+      - "kernel"
+      - "linux-image-*"
+      - "grub-*"
+      - "libc6"
+      - "dbus"
+      - "avahi-daemon"
+      - "jq"
+      - "curl"
+      - "wget"
+      - "google-chrome-stable"
+      - "chromium-browser"
+      - "snapd"
+      - "slack-desktop"
+
+  tasks:
+    - name: Get current installed packages
+      shell: "dpkg-query -W -f='${Package}\n'"
+      register: current_pkgs
+
+    - name: Identify packages to remove
+      set_fact:
+        pkgs_to_remove: >-
+          {%- set to_remove = [] -%}
+          {%- for pkg in current_pkgs.stdout_lines -%}
+            {%- if pkg not in whitelist_data and pkg not in system_safety_list -%}
+              {%- set _ = to_remove.append(pkg) -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ to_remove }}
+
+    - name: Uninstall non-whitelisted packages
+      apt:
+        name: "{{ item }}"
+        state: absent
+        purge: yes
+      loop: "{{ pkgs_to_remove }}"
+      when: pkgs_to_remove | length > 0
+      register: uninstall_result
+
+    - name: Cleanup unused dependencies
+      apt:
+        autoremove: yes
+        purge: yes
+      when: pkgs_to_remove | length > 0
+
+    - name: Output Result
+      debug:
+        msg: 
+          removed_count: "{{ pkgs_to_remove | length }}"
+          removed_packages: "{{ pkgs_to_remove }}"
+          status: "Success"
