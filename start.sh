@@ -25,7 +25,7 @@ echo ""
 # Start backend in background
 echo "▶ Starting Backend (FastAPI) on http://localhost:8000 ..."
 cd "$PROJECT_DIR"
-./.venv/bin/python3 -m controller.main &
+./.venv/bin/python3 -m backend.app.main &
 BACKEND_PID=$!
 
 sleep 2

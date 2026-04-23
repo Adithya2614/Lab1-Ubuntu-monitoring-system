@@ -30,6 +30,10 @@ logs/
 # ---------- Sensitive / Secrets ----------
 # The inventory contains plaintext passwords — never commit it!
 ansible/inventory/hosts
+.env
+.ssh_keys/
+*.db
+wmi.db
 
 # ---------- OS / Editor ----------
 .DS_Store
